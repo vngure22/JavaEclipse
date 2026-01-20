@@ -1,24 +1,57 @@
-# Compiled class file
+#######################
+# MSU Denver CS1050 / CS2050
+# Java + Eclipse (Teaching Repository)
+#######################
+
+#######################
+# Java / JVM
+#######################
 *.class
-
-# Log file
 *.log
-
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
-*.jar
-*.war
-*.nar
-*.ear
-*.zip
-*.tar.gz
-*.rar
-
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+#######################
+# Eclipse (keep project files so import works)
+#######################
+
+# Keep these tracked so Eclipse imports cleanly on any computer
+!.project
+!.classpath
+!.settings/
+!.settings/org.eclipse.jdt.core.prefs
+!.settings/org.eclipse.jdt.ui.prefs
+
+# Ignore Eclipse workspace cruft (never belongs in a repo)
+.metadata/
+.recommenders/
+.loadpath
+.externalToolBuilders/
+
+# Ignore build outputs
+bin/
+out/
+target/
+tmp/
+*.tmp
+*.bak
+*.swp
+
+# Ignore launch configs (often machine-specific)
+*.launch
+
+#######################
+# OS cruft
+#######################
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
