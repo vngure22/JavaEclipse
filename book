@@ -1,0 +1,50 @@
+//Book class encapsulating the variables, methods, and constructors
+public class Book {
+	
+	//Private fields - encapsulation: data is being hidden
+	private String title;		//Stores the book's title
+	private String author;		//Stores the book's author name
+	private int year; 			//Stores publication year
+	
+	//Constructor will initialize a book object with provided values
+	public Book(String title, String author, int year) {
+		this.title = title;		//Set the title field to the parameter value
+		this.author = author;	//Set the author field to the parameter value
+		this.year = year;		//Set the year field to the parameter value
+	}
+
+	//Getter Method for title 
+	public String getTitle() {
+		return title;	//returns the book's title
+	}
+	
+	//Getter method for author
+	public String getAuthor() {
+		return author;	//returns the author's name
+	}
+	//Getter Method for year
+	public int getYear() {
+		return year; //return's the publication year
+	}
+	//Method to format book details as a readable string
+	public String stringOfBookDetails() {
+		//Concatenates title, author, and year in format "Title", "Author", and "Year"
+		return "\"" + title + "\" by " + author + " (" + year + ")";
+	}
+	
+	//Main Method for testing
+	public static void main(String[] args) {
+		//Create a new Book Object
+		Book book1 = new Book("One Piece", "Eichiro Oda", 1997);
+		
+		//Print formatted book details using stringOfBookDetails method
+		System.out.println(book1.stringOfBookDetails());
+		
+		//Demonstrate getter methods
+		System.out.println("Title: " + book1.getTitle());
+		System.out.println("Author " + book1.getAuthor());
+		System.out.println("Year " + book1.getYear());
+		
+	}
+
+}
