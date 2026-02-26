@@ -1,50 +1,540 @@
-//Book class encapsulating the variables, methods, and constructors
-public class Book {
-	
-	//Private fields - encapsulation: data is being hidden
-	private String title;		//Stores the book's title
-	private String author;		//Stores the book's author name
-	private int year; 			//Stores publication year
-	
-	//Constructor will initialize a book object with provided values
-	public Book(String title, String author, int year) {
-		this.title = title;		//Set the title field to the parameter value
-		this.author = author;	//Set the author field to the parameter value
-		this.year = year;		//Set the year field to the parameter value
-	}
+// LibraryManagementSystem.java
+// Library management system with Book and Library classes
+// Designed to work with the provided test code
 
-	//Getter Method for title 
-	public String getTitle() {
-		return title;	//returns the book's title
-	}
-	
-	//Getter method for author
-	public String getAuthor() {
-		return author;	//returns the author's name
-	}
-	//Getter Method for year
-	public int getYear() {
-		return year; //return's the publication year
-	}
-	//Method to format book details as a readable string
-	public String stringOfBookDetails() {
-		//Concatenates title, author, and year in format "Title", "Author", and "Year"
-		return "\"" + title + "\" by " + author + " (" + year + ")";
-	}
-	
-	//Main Method for testing
-	public static void main(String[] args) {
-		//Create a new Book Object
-		Book book1 = new Book("One Piece", "Eichiro Oda", 1997);
-		
-		//Print formatted book details using stringOfBookDetails method
-		System.out.println(book1.stringOfBookDetails());
-		
-		//Demonstrate getter methods
-		System.out.println("Title: " + book1.getTitle());
-		System.out.println("Author " + book1.getAuthor());
-		System.out.println("Year " + book1.getYear());
-		
-	}
+/**
+ * Book class - Represents a single book with title, author, and publication year
+ * Follows encapsulation principles with private fields and public accessor methods
+ */
+class Book {
+    
+    // Private field to store the book's title
+    private String title;
+    
+    // Private field to store the book's author name
+    private String author;
+    
+    // Private field to store the publication year
+    private int year;
+    
+    /**
+     * Constructor - Creates a new Book object with specified details
+     * @param title - the title of the book
+     * @param author - the author's name
+     * @param year - the publication year
+     */
+    public Book(String title, String author, int year) {
+        // Assign the title parameter to the instance variable
+        this.title = title;
+        
+        // Assign the author parameter to the instance variable
+        this.author = author;
+        
+        // Assign the year parameter to the instance variable
+        this.year = year;
+    }
+    
+    /**
+     * Getter method to retrieve the book's title
+     * @return the title of this book
+     */
+    public String getTitle() {
+        // Return the private title field
+        return title;
+    }
+    
+    /**
+     * Getter method to retrieve the book's author
+     * @return the author of this book
+     */
+    public String getAuthor() {
+        // Return the private author field
+        return author;
+    }
+    
+    /**
+     * Getter method to retrieve the book's publication year
+     * @return the publication year of this book
+     */
+    public int getYear() {
+        // Return the private year field
+        return year;
+    }
+    
+    /**
+     * Creates a formatted string representation of the book
+     * Format: "Title" by Author (Year)
+     * @return formatted string with book details
+     */
+    public String stringOfBookDetails() {
+        // Concatenate the book information in the required format
+        // Adds quotes around title, followed by "by", author name, and year in parentheses
+        return "\"" + title + "\" by " + author + " (" + year + ")";
+    }
+}
 
+
+/**
+ * Library class - Manages a collection of books organized in a 2D grid structure
+ * Follows encapsulation with private fields and public methods
+ * Grid structure: rows = shelves, columns = slots per shelf
+ */
+class Library {
+    
+    // Private field to store the library's name
+    private String name;
+    
+    // Private 2D array to store Book objects
+    // First dimension [rows] represents shelves
+    // Second dimension [cols] represents slots on each shelf
+    private Book[][] bookShelf;
+    
+    // Private field to track the total number of shelves (rows)
+    private int numberOfShelves;
+    
+    // Private field to track the capacity of each shelf (columns)
+    private int shelfCapacity;
+    
+    // Private field to track which shelf is currently being filled (0-based index)
+    private int currentShelf;
+    
+    // Private field to track which slot on the current shelf is next (0-based index)
+    private int currentSlot;
+    
+    // Private boolean flag indicating if the library is completely full
+    private boolean isFull;
+    
+    /**
+     * Constructor - Creates a Library with specified name and dimensions
+     * Validates input and defaults to 1x1 grid if parameters are invalid
+     * @param name - the name of the library
+     * @param shelves - the number of shelves (rows)
+     * @param shelfCapacity - the number of slots per shelf (columns)
+     */
+    public Library(String name, int shelves, int shelfCapacity) {
+        // Assign the library name to the instance variable
+        this.name = name;
+        
+        // Validate the number of shelves - must be positive
+        if (shelves <= 0) {
+            // Print warning if invalid and set default
+            System.out.println("Invalid number of shelves. Defaulting to 1 shelf.");
+            shelves = 1;
+        }
+        
+        // Validate the shelf capacity - must be positive
+        if (shelfCapacity <= 0) {
+            // Print warning if invalid and set default
+            System.out.println("Invalid shelf capacity. Defaulting to capacity of 1.");
+            shelfCapacity = 1;
+        }
+        
+        // Store the validated number of shelves
+        this.numberOfShelves = shelves;
+        
+        // Store the validated shelf capacity
+        this.shelfCapacity = shelfCapacity;
+        
+        // Create the 2D Book array with validated dimensions
+        this.bookShelf = new Book[shelves][shelfCapacity];
+        
+        // Initialize current shelf to 0 (starting at first shelf)
+        this.currentShelf = 0;
+        
+        // Initialize current slot to 0 (starting at first slot)
+        this.currentSlot = 0;
+        
+        // Initialize full flag to false (library starts empty)
+        this.isFull = false;
+    }
+    
+    /**
+     * Getter method for the library's name
+     * @return the name of the library
+     */
+    public String getName() {
+        // Return the private name field
+        return name;
+    }
+    
+    /**
+     * Adds a book to the library using row-major order scanning
+     * Searches for the first available (null) slot in the 2D array
+     * Handles null book parameter by skipping it
+     * @param book - the Book object to add (can be null)
+     * @return true if book was successfully added, false if library is full or book is null
+     */
+    public boolean addBook(Book book) {
+        // Check if the book parameter is null
+        if (book == null) {
+            // Print message indicating null book cannot be added
+            System.out.println("Cannot add null book to library.");
+            return false;  // Return false indicating failure
+        }
+        
+        // Check if the library is already marked as full
+        if (isFull) {
+            // Print message indicating library is full
+            System.out.println("Library is full. Cannot add: " + book.stringOfBookDetails());
+            return false;  // Return false indicating failure
+        }
+        
+        // Outer loop: iterate through each shelf (row) in row-major order
+        for (int shelf = 0; shelf < numberOfShelves; shelf++) {
+            
+            // Inner loop: iterate through each slot (column) on current shelf
+            for (int slot = 0; slot < shelfCapacity; slot++) {
+                
+                // Check if the current position is empty (null)
+                if (bookShelf[shelf][slot] == null) {
+                    
+                    // Empty slot found - place the book here
+                    bookShelf[shelf][slot] = book;
+                    
+                    // Update the current shelf tracker
+                    currentShelf = shelf;
+                    
+                    // Update the current slot tracker
+                    currentSlot = slot;
+                    
+                    // Print success message with location
+                    // Convert 0-based indices to 1-based for user-friendly display
+                    System.out.println("Successfully added: " + book.stringOfBookDetails() + 
+                                     " to Shelf " + (shelf + 1) + ", Slot " + (slot + 1));
+                    
+                    // Check if this was the last available slot in the library
+                    // Last shelf index is (numberOfShelves - 1)
+                    // Last slot index is (shelfCapacity - 1)
+                    if (shelf == numberOfShelves - 1 && slot == shelfCapacity - 1) {
+                        // Mark library as full
+                        isFull = true;
+                    }
+                    
+                    // Return true indicating successful addition
+                    return true;
+                }
+            }
+        }
+        
+        // If we reach here, no empty slot was found (library is full)
+        // Mark library as full
+        isFull = true;
+        
+        // Print message indicating library is full
+        System.out.println("Library is full. Cannot add: " + book.stringOfBookDetails());
+        
+        // Return false indicating failure to add
+        return false;
+    }
+    
+    /**
+     * Prints all books in the library in a formatted table
+     * Loops through the entire 2D array and displays non-null entries
+     * Shows shelf number, slot number, and book details
+     */
+    public void printAllBooks() {
+        // Print header separator line
+        System.out.println("\n========================================");
+        
+        // Print title with library name
+        System.out.println("Books in " + name + " Library");
+        
+        // Print header separator line
+        System.out.println("========================================");
+        
+        // Initialize counter to track total books found
+        int totalBooks = 0;
+        
+        // Outer loop: iterate through each shelf (row)
+        for (int shelf = 0; shelf < numberOfShelves; shelf++) {
+            
+            // Inner loop: iterate through each slot (column)
+            for (int slot = 0; slot < shelfCapacity; slot++) {
+                
+                // Check if current position contains a book (not null)
+                if (bookShelf[shelf][slot] != null) {
+                    
+                    // Print the book's location and details
+                    // %d is placeholder for integers, %s for strings
+                    // Add 1 to indices to convert from 0-based to 1-based display
+                    System.out.printf("Shelf %d, Slot %d: %s\n", 
+                                    (shelf + 1),           // Convert to 1-based shelf number
+                                    (slot + 1),            // Convert to 1-based slot number
+                                    bookShelf[shelf][slot].stringOfBookDetails());
+                    
+                    // Increment the book counter
+                    totalBooks++;
+                }
+            }
+        }
+        
+        // Check if any books were found
+        if (totalBooks == 0) {
+            // Print message if library is empty
+            System.out.println("No books in the library.");
+        }
+        
+        // Print footer separator line
+        System.out.println("========================================");
+        
+        // Print total count of books
+        System.out.println("Total books: " + totalBooks);
+        
+        // Print footer separator line
+        System.out.println("========================================\n");
+    }
+    
+    /**
+     * Finds and displays the oldest book(s) in the library
+     * Handles multiple books with the same oldest year
+     * If library is empty, prints "Library is empty." and returns
+     * Method name matches test code: displayOldest()
+     */
+    public void displayOldest() {
+        // Call private helper method to count total books
+        int totalBooks = countBooks();
+        
+        // Check if library has no books
+        if (totalBooks == 0) {
+            // Print message indicating empty library
+            System.out.println("Library is empty.");
+            return;  // Exit method early
+        }
+        
+        // Initialize variable to store the oldest year found
+        // Start with maximum integer value so any book year will be smaller
+        int oldestYear = Integer.MAX_VALUE;
+        
+        // FIRST PASS: Find the minimum (oldest) year among all books
+        // Outer loop: iterate through shelves
+        for (int shelf = 0; shelf < numberOfShelves; shelf++) {
+            
+            // Inner loop: iterate through slots
+            for (int slot = 0; slot < shelfCapacity; slot++) {
+                
+                // Check if position contains a book
+                if (bookShelf[shelf][slot] != null) {
+                    
+                    // Get the year of the current book
+                    int currentYear = bookShelf[shelf][slot].getYear();
+                    
+                    // Compare with oldest year found so far
+                    if (currentYear < oldestYear) {
+                        // Update oldestYear if current book is older
+                        oldestYear = currentYear;
+                    }
+                }
+            }
+        }
+        
+        // Print section header
+        System.out.println("\n--- Oldest Book(s) ---");
+        
+        // SECOND PASS: Print all books that match the oldest year
+        // This handles multiple books with the same oldest year
+        // Outer loop: iterate through shelves
+        for (int shelf = 0; shelf < numberOfShelves; shelf++) {
+            
+            // Inner loop: iterate through slots
+            for (int slot = 0; slot < shelfCapacity; slot++) {
+                
+                // Check if position contains a book
+                if (bookShelf[shelf][slot] != null) {
+                    
+                    // Check if this book's year matches the oldest year
+                    if (bookShelf[shelf][slot].getYear() == oldestYear) {
+                        // Print this book's details
+                        System.out.println(bookShelf[shelf][slot].stringOfBookDetails());
+                    }
+                }
+            }
+        }
+        
+        // Print blank line for formatting
+        System.out.println();
+    }
+    
+    /**
+     * Displays the number of books on each shelf
+     * Prints a formatted list showing shelf number and book count
+     * Method name matches test code: displayCountPerShelf()
+     */
+    public void displayCountPerShelf() {
+        // Call private helper method to get array of counts per shelf
+        int[] counts = getCountsPerShelf();
+        
+        // Print section header
+        System.out.println("\n--- Books Per Shelf ---");
+        
+        // Loop through the counts array
+        for (int i = 0; i < counts.length; i++) {
+            
+            // Print the shelf number (1-based) and its book count
+            // (i + 1) converts from array index to shelf number
+            System.out.printf("Shelf %d: %d book(s)\n", (i + 1), counts[i]);
+        }
+        
+        // Print blank line for formatting
+        System.out.println();
+    }
+    
+    /**
+     * Private helper method to get an array of book counts per shelf
+     * Used by displayCountPerShelf() method
+     * @return integer array where index = shelf number, value = book count
+     */
+    private int[] getCountsPerShelf() {
+        // Create an integer array with one element per shelf
+        int[] countsPerShelf = new int[numberOfShelves];
+        
+        // Outer loop: iterate through each shelf
+        for (int shelf = 0; shelf < numberOfShelves; shelf++) {
+            
+            // Initialize counter for current shelf
+            int count = 0;
+            
+            // Inner loop: iterate through slots on current shelf
+            for (int slot = 0; slot < shelfCapacity; slot++) {
+                
+                // Check if slot contains a book (not null)
+                if (bookShelf[shelf][slot] != null) {
+                    // Increment the counter for this shelf
+                    count++;
+                }
+            }
+            
+            // Store the count for this shelf in the array
+            countsPerShelf[shelf] = count;
+        }
+        
+        // Return the array of counts
+        return countsPerShelf;
+    }
+    
+    /**
+     * Private helper method to count total number of books in the library
+     * Scans the entire 2D array and counts non-null entries
+     * @return the total number of books in the library
+     */
+    private int countBooks() {
+        // Initialize counter to zero
+        int total = 0;
+        
+        // Outer loop: iterate through each shelf (row)
+        for (int shelf = 0; shelf < numberOfShelves; shelf++) {
+            
+            // Inner loop: iterate through each slot (column)
+            for (int slot = 0; slot < shelfCapacity; slot++) {
+                
+                // Check if current position contains a book (not null)
+                if (bookShelf[shelf][slot] != null) {
+                    // Increment the total counter
+                    total++;
+                }
+            }
+        }
+        
+        // Return the total count of books
+        return total;
+    }
+}
+
+
+/**
+ * Main class to test the Library Management System
+ * Uses the provided test code to verify all functionality
+ */
+public class LibraryManagementSystem {
+    
+    /**
+     * Main method - entry point for the program
+     * Contains the provided test code
+     * @param args - command line arguments (not used)
+     */
+    public static void main(String[] args) {
+        // --- unit test checks for Book ---
+        System.out.println("Unit Test Book Class");
+        
+        // Create a test book object
+        Book unitTestBook = new Book("Unmasking AI", "Joy Buolamwini", 2023);
+        
+        // Test getTitle() method
+        System.out.println("getTitle():   " + unitTestBook.getTitle());
+        
+        // Test getAuthor() method
+        System.out.println("getAuthor():  " + unitTestBook.getAuthor());
+        
+        // Test getYear() method
+        System.out.println("getYear():    " + unitTestBook.getYear());
+        
+        // Test stringOfBookDetails() method
+        System.out.println("stringOfBookDetails():   " + unitTestBook.stringOfBookDetails());
+        
+        // Print blank line
+        System.out.println();
+        
+        // Print setup information
+        System.out.println("Setting up Test Library");
+        
+        // Define library dimensions
+        int numberOfShelves = 3;
+        int shelfCapacity = 4;
+        
+        // Display library configuration
+        System.out.println("Shelves (rows): " + numberOfShelves);
+        System.out.println("Slots per shelf (columns): " + shelfCapacity);
+        System.out.println("Total capacity: " + (numberOfShelves * shelfCapacity));
+        System.out.println();
+        
+        // Create the library object
+        Library library = new Library("Test Library", numberOfShelves, shelfCapacity);
+        
+        // Display initial state of empty library
+        library.displayCountPerShelf();
+        library.printAllBooks();
+        library.displayOldest();
+        
+        // Row 0 - Add books to first shelf
+        library.addBook(null);  // Test null book - should print error message
+        library.addBook(new Book("Unmasking AI", "Joy Buolamwini", 2023));
+        library.addBook(new Book("Hello World", "Hannah Fry", 2018));
+        library.addBook(new Book("Race After Technology", "Ruha Benjamin", 2019));
+        library.addBook(new Book("Deep Learning", "Ian Goodfellow", 2016));
+        
+        // Display state after adding first 4 books
+        library.displayCountPerShelf();
+        library.printAllBooks();
+        library.displayOldest();
+        
+        // Row 1 - Add books to second shelf
+        library.addBook(new Book("Algorithms to Live By", "Brian Christian", 2016));
+        library.addBook(new Book("Weapons of Math Destruction", "Cathy O'Neil", 2016));
+        library.addBook(new Book("The Mythical Man-Month", "Fred Brooks", 1975));
+        library.addBook(new Book("Refactoring", "Martin Fowler", 1999));
+        
+        // Row 2 - Add books to third shelf
+        library.addBook(new Book("The Pragmatic Programmer", "Andrew Hunt & David Thomas", 1999));
+        library.addBook(new Book("Peopleware", "Tom DeMarco & Tim Lister", 1987));
+        library.addBook(new Book("Computer Lib / Dream Machines", "Ted Nelson", 1975));
+        
+        // Display state after adding 11 books (library has 1 slot left)
+        library.displayCountPerShelf();
+        library.printAllBooks();
+        library.displayOldest();
+        
+        // Print blank line
+        System.out.println();
+        
+        // Test adding more books than capacity
+        System.out.println("Test add more books than capacity...");
+        
+        // Try to add book when only 1 slot remains - should succeed and fill library
+        library.addBook(new Book("Extra Title", "Extra Author", 2024));
+        
+        // Display final state - library should now be full
+        library.displayCountPerShelf();
+        library.printAllBooks();
+        library.displayOldest();
+        
+    }// end main
 }
