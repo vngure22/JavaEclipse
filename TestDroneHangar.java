@@ -1,370 +1,218 @@
-import java.util.ArrayList;
-import java.util.Scanner;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.util.*;
+import java.io.*;
 
 /**
- * The main starting point for the program. 
- * This class handles the user menu and runs the hangar system.
+ * TestDroneHangar handles the User Interface and File I/O operations.
+ * It coordinates between the user's input and the Hangar data management.
  */
 public class TestDroneHangar {
-    /**
-     * Starts the program and keeps the menu running until the user quits.
-     * @param args Command line arguments (not used here).
-     */
     public static void main(String[] args) {
-        Hangar hangar = new Hangar();
-        boolean running = true;
+        Hangar hangarManager = new Hangar();
+        Scanner inputScanner = new Scanner(System.in);
+        boolean isRunning = true;
 
-        System.out.println("Welcome to the Drone Hangar Management System");
+        System.out.println("--- Drone Hangar Management System ---");
 
-        while (running) {
-            hangar.displayConsoleMenu();
-            String choice = hangar.getUserInput();
+        while (isRunning) {
+            displayMenu();
+            String userChoice = inputScanner.nextLine().trim();
 
-            if (choice.equals("1")) {
-                hangar.loadFromCSV();
+            if (userChoice.equals("1")) {
+                System.out.print("Enter the name of the CSV file: ");
+                String fileName = inputScanner.nextLine().trim();
+                processFileLoading(fileName, hangarManager);
             } 
-            else if (choice.equals("2")) {
-                hangar.displayHangarInventory();
+            else if (userChoice.equals("2")) {
+                printDroneList(hangarManager.getAllDrones());
             } 
-            else if (choice.equals("3")) {
-                hangar.displayDronesByTypeAndMFG();
+            else if (userChoice.equals("3")) {
+                System.out.print("Enter Drone ID to search (e.g., D1000): ");
+                String searchId = inputScanner.nextLine().trim();
+                Drone foundDrone = hangarManager.findDroneById(searchId);
+                System.out.println(foundDrone != null ? foundDrone : "Error: Drone ID not found.");
             } 
-            else if (choice.equals("4")) {
-                System.out.print("Enter manufacturer name: ");
-                String name = hangar.getUserInput();
-                hangar.displayManufacturerCount(name);
+            else if (userChoice.equals("4")) {
+                System.out.print("Enter Drone ID to add to Maintenance Queue: ");
+                String queueId = inputScanner.nextLine().trim();
+                boolean isAdded = hangarManager.addToMaintenanceQueue(queueId);
+                if (isAdded) {
+                    System.out.println("Success: Drone added to the maintenance queue.");
+                } else {
+                    System.out.println("Notice: Drone ID not found or already in the queue.");
+                }
             } 
-            else if (choice.equals("5")) {
-                hangar.displayByPayload();
+            else if (userChoice.equals("5")) {
+                Drone processedDrone = hangarManager.processNextMaintenanceTask();
+                if (processedDrone != null) {
+                    System.out.println("Now repairing: " + processedDrone);
+                } else {
+                    System.out.println("Notice: The maintenance queue is currently empty.");
+                }
             } 
-            else if (choice.equals("6")) {
-                hangar.displayDronebyYear();
+            else if (userChoice.equals("6")) {
+                System.out.println("Inventory sorted by Payload Capacity:");
+                printDroneList(hangarManager.getDronesSortedByPayload());
             } 
-            else if (choice.equals("7")) {
-                System.out.println("Exiting program. Goodbye!");
-                running = false; 
+            else if (userChoice.equals("7")) {
+                System.out.println("Exiting system. Goodbye.");
+                isRunning = false;
             } 
             else {
-                System.out.println("Invalid option. Please pick 1-7.");
+                System.out.println("Invalid selection. Please choose 1-7.");
+            }
+        }
+        inputScanner.close();
+    }
+
+    /**
+     * Reads the CSV file and populates the Hangar.
+     * Format expected: Category, Type, Manufacturer, Year, Payload
+     */
+    private static void processFileLoading(String fileName, Hangar hangar) {
+        try (Scanner fileScanner = new Scanner(new File(fileName))) {
+            int count = 0;
+            while (fileScanner.hasNextLine()) {
+                String line = fileScanner.nextLine();
+                if (line.trim().isEmpty()) continue;
+
+                String[] details = line.split(",");
+                if (details.length == 5) {
+                    String category = details[0].trim();
+                    String droneType = details[1].trim();
+                    String manufacturer = details[2].trim();
+                    int modelYear = Integer.parseInt(details[3].trim());
+                    double payload = Double.parseDouble(details[4].trim());
+
+                    Drone newDrone;
+                    if (category.equalsIgnoreCase("P")) {
+                        newDrone = new PriorityDrone(droneType, manufacturer, modelYear, payload);
+                    } else {
+                        newDrone = new StandardDrone(droneType, manufacturer, modelYear, payload);
+                    }
+                    hangar.registerDrone(newDrone);
+                    count++;
+                }
+            }
+            System.out.println("Successfully loaded " + count + " drones into the hangar.");
+        } catch (FileNotFoundException e) {
+            System.out.println("Error: Could not find file '" + fileName + "'.");
+        } catch (Exception e) {
+            System.out.println("Error parsing file: " + e.getMessage());
+        }
+    }
+
+    private static void displayMenu() {
+        System.out.println("\nMain Menu:");
+        System.out.println("1. Load Drones from CSV");
+        System.out.println("2. Display All Drones");
+        System.out.println("3. Search by Unique ID");
+        System.out.println("4. Add Drone to Maintenance");
+        System.out.println("5. Process Next Maintenance Task");
+        System.out.println("6. View Drones Sorted by Payload");
+        System.out.println("7. Exit");
+        System.out.print("Select an option: ");
+    }
+
+    private static void printDroneList(List<Drone> droneList) {
+        if (droneList.isEmpty()) {
+            System.out.println("The inventory is currently empty.");
+        } else {
+            for (Drone drone : droneList) {
+                System.out.println(drone);
             }
         }
     }
 }
-
 /**
- * The general template for all drones.
- * This class is abstract, meaning you can't make a "generic" drone object.
+ * Abstract class representing the general Drone properties.
  */
 abstract class Drone {
+    private static int idGenerator = 1000;
+    private String droneID;
     private String type;
     private String manufacturer;
     private int year;
-    private double payloadKg;
+    private double payloadCapacity;
 
-    /**
-     * Sets up the basic data for any drone.
-     * @param type The model name.
-     * @param manufacturer Who made it.
-     * @param year When it was built.
-     * @param payload How much weight it can carry.
-     */
-    public Drone(String type, String manufacturer, int year, double payload) {
+    public Drone(String type, String manufacturer, int year, double payloadCapacity) {
+        this.droneID = "D" + idGenerator++;
         this.type = type;
         this.manufacturer = manufacturer;
         this.year = year;
-        this.payloadKg = payload;
+        this.payloadCapacity = payloadCapacity;
     }
 
-    public String getType() { return type; }
-    public String getManufacturer() { return manufacturer; }
-    public int getYear() { return year; }
-    public double getPayloadKg() { return payloadKg; }
+    public String getDroneID() { return droneID; }
+    public double getPayloadCapacity() { return payloadCapacity; }
 
-    /**
-     * Formats the drone data into a readable string for printing.
-     * @return A nice summary of the drone's details.
-     */
     @Override
     public String toString() {
-        return String.format("[Type: %s, Maker: %s, Year: %d, Payload: %.2fkg]",
-                type, manufacturer, year, payloadKg);
-    }
-
-    /**
-     * Compares this drone to another to see if they are identical.
-     * @param other The other object to check.
-     * @return True if all the details match.
-     */
-    @Override
-    public boolean equals(Object other) {
-        if (this == other) return true;
-        if (other == null || !(other instanceof Drone)) return false;
-        Drone d = (Drone) other;
-        return year == d.year
-            && Math.abs(payloadKg - d.payloadKg) < 0.0001
-            && type.equalsIgnoreCase(d.type)
-            && manufacturer.equalsIgnoreCase(d.manufacturer);
+        return String.format("[%s] %s %s | Year: %d | Payload: %.1fkg", 
+                droneID, manufacturer, type, year, payloadCapacity);
     }
 }
 
-/**
- * A regular drone with no special priority status.
- */
 class StandardDrone extends Drone {
     public StandardDrone(String type, String manufacturer, int year, double payload) {
         super(type, manufacturer, year, payload);
     }
-
     @Override
-    public String toString() {
-        return "STANDARD " + super.toString();
-    }
+    public String toString() { return "Standard " + super.toString(); }
 }
 
-/**
- * A high-importance drone that gets special labeling.
- */
 class PriorityDrone extends Drone {
     public PriorityDrone(String type, String manufacturer, int year, double payload) {
         super(type, manufacturer, year, payload);
     }
-
     @Override
-    public String toString() {
-        return "PRIORITY " + super.toString();
-    }
+    public String toString() { return "PRIORITY " + super.toString(); }
 }
 
 /**
- * The main manager for the hangar.
- * It stores the drones and handles all the sorting and file reading.
+ * Hangar manages the data structures: ArrayList (Inventory), 
+ * HashMap (ID Lookup), and Queue (Maintenance).
  */
 class Hangar {
-    private ArrayList<Drone> drones; 
-    private Drone[] sortedDrones;    
-    private final Scanner scanner = new Scanner(System.in);
+    private ArrayList<Drone> droneInventory = new ArrayList<>();
+    private HashMap<String, Drone> idLookupMap = new HashMap<>();
+    private Queue<Drone> maintenanceQueue = new LinkedList<>();
 
-    /**
-     * Creates a new hangar with an empty list.
-     */
-    public Hangar() {
-        drones = new ArrayList<>();
-        sortedDrones = new Drone[0];
+    public void registerDrone(Drone drone) {
+        droneInventory.add(drone);
+        idLookupMap.put(drone.getDroneID().toUpperCase(), drone);
+    }
+
+    public Drone findDroneById(String id) {
+        return idLookupMap.get(id.toUpperCase());
+    }
+
+    public ArrayList<Drone> getAllDrones() {
+        return droneInventory;
     }
 
     /**
-     * Prints the user menu options.
+     * Prevents duplicates by checking if the drone is already in the queue.
      */
-    public void displayConsoleMenu() {
-        System.out.println("\n--- HANGAR OPERATIONS ---");
-        System.out.println("1. Load CSV (Category,Type,Maker,Year,Payload)");
-        System.out.println("2. Display All");
-        System.out.println("3. Search Type/Maker");
-        System.out.println("4. Count Maker");
-        System.out.println("5. Sort Payload (Selection Sort)");
-        System.out.println("6. Sort Year (Insertion Sort)");
-        System.out.println("7. Exit");
-        System.out.print("Select: ");
+    public boolean addToMaintenanceQueue(String id) {
+        Drone targetDrone = findDroneById(id);
+        if (targetDrone != null && !maintenanceQueue.contains(targetDrone)) {
+            return maintenanceQueue.add(targetDrone);
+        }
+        return false;
     }
 
-    /**
-     * Gets whatever the user types into the console.
-     * @return The text typed by the user.
-     */
-    public String getUserInput() { return scanner.nextLine().trim(); }
+    public Drone processNextMaintenanceTask() {
+        return maintenanceQueue.poll();
+    }
 
-    /**
-     * Checks if there are any drones in the hangar.
-     * @return True if the list has at least one drone.
-     */
-    public boolean hasDrones() { return !drones.isEmpty(); }
-
-    /**
-     * Reads a file and adds drones to the list.
-     * @param filename The name of the file to open.
-     */
-    public void loadDronesFromCSV(String filename) {
-        try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
-            String line = reader.readLine();
-            int lineNum = 0;
-            while (line != null) {
-                lineNum++;
-                if (!line.trim().isEmpty()) {
-                    Drone d = parseDroneLine(line, lineNum);
-                    if (d != null) {
-                        if (!addDrone(d)) {
-                            System.out.println("Line " + lineNum + ": Skipping duplicate.");
-                        }
-                    }
-                }
-                line = reader.readLine();
+    public ArrayList<Drone> getDronesSortedByPayload() {
+        ArrayList<Drone> sortedList = new ArrayList<>(droneInventory);
+        Collections.sort(sortedList, new Comparator<Drone>() {
+            @Override
+            public int compare(Drone drone1, Drone drone2) {
+                return Double.compare(drone1.getPayloadCapacity(), drone2.getPayloadCapacity());
             }
-        } catch (IOException e) {
-            System.out.println("Error reading file: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Asks the user for a filename to load data from.
-     */
-    public void loadFromCSV() {
-        System.out.print("Filename: ");
-        String name = getUserInput();
-        if (!name.isEmpty()) {
-            loadDronesFromCSV(name);
-        }
-    }
-
-    /**
-     * Takes a line of text from the CSV and converts it into a Drone object.
-     * @param line The text line from the file.
-     * @param lineNum Used to tell the user where an error happened.
-     * @return A Standard or Priority drone, or null if the data is bad.
-     */
-    public Drone parseDroneLine(String line, int lineNum) {
-        String[] p = line.split(",");
-        if (p.length != 5) return null;
-
-        try {
-            String category = p[0].trim().toUpperCase();
-            String type = p[1].trim();
-            String mfg = p[2].trim();
-            int year = Integer.parseInt(p[3].trim());
-            double payload = Double.parseDouble(p[4].trim());
-
-            if (category.equals("P")) {
-                return new PriorityDrone(type, mfg, year, payload);
-            } else {
-                return new StandardDrone(type, mfg, year, payload);
-            }
-        } catch (Exception e) {
-            System.out.println("Line " + lineNum + ": Data format error.");
-            return null;
-        }
-    }
-
-    /**
-     * Adds a drone to the list, but only if it's not already in there.
-     * @param d The drone to be added.
-     * @return True if the drone was added successfully.
-     */
-    public boolean addDrone(Drone d) {
-        if (d == null || findDuplicateDrone(d)) return false;
-        drones.add(d);
-        return true;
-    }
-
-    /**
-     * Looks through the list to see if a drone already exists.
-     * @param d The drone to look for.
-     * @return True if it's already in the hangar.
-     */
-    public boolean findDuplicateDrone(Drone d) {
-        boolean found = false;
-        int i = 0;
-        while (i < drones.size() && !found) {
-            if (drones.get(i).equals(d)) { found = true; }
-            i++;
-        }
-        return found;
-    }
-
-    /**
-     * Prints every drone currently in the hangar list.
-     */
-    public void displayHangarInventory() {
-        if (!hasDrones()) {
-            System.out.println("Hangar empty.");
-        } else {
-            for (Drone d : drones) { System.out.println(d); }
-        }
-    }
-
-    /**
-     * Sorts the drones by payload capacity using Selection Sort.
-     */
-    public void sortDronesByPayload() {
-        sortedDrones = drones.toArray(new Drone[0]);
-        int n = sortedDrones.length;
-        for (int i = 0; i < n - 1; i++) {
-            int minIdx = i;
-            for (int j = i + 1; j < n; j++) {
-                if (sortedDrones[j].getPayloadKg() < sortedDrones[minIdx].getPayloadKg()) {
-                    minIdx = j;
-                }
-            }
-            Drone temp = sortedDrones[minIdx];
-            sortedDrones[minIdx] = sortedDrones[i];
-            sortedDrones[i] = temp;
-        }
-    }
-
-    /**
-     * Runs the payload sort and then prints the sorted list.
-     */
-    public void displayByPayload() {
-        if (hasDrones()) {
-            sortDronesByPayload();
-            for (Drone d : sortedDrones) { System.out.println(d); }
-        }
-    }
-
-    /**
-     * Sorts the drones by their manufacturing year using Insertion Sort.
-     * @return A sorted array of drones.
-     */
-    public Drone[] sortDronesByYear() {
-        Drone[] sorted = drones.toArray(new Drone[0]);
-        for (int i = 1; i < sorted.length; i++) {
-            Drone key = sorted[i];
-            int j = i - 1;
-            while (j >= 0 && sorted[j].getYear() > key.getYear()) {
-                sorted[j + 1] = sorted[j];
-                j--;
-            }
-            sorted[j + 1] = key;
-        }
-        return sorted;
-    }
-
-    /**
-     * Runs the year sort and then prints the results.
-     */
-    public void displayDronebyYear() {
-        if (hasDrones()) {
-            Drone[] results = sortDronesByYear();
-            for (Drone d : results) { System.out.println(d); }
-        }
-    }
-
-    /**
-     * Searches for drones that match a specific type and maker.
-     */
-    public void displayDronesByTypeAndMFG() {
-        System.out.print("Search Type: ");
-        String t = getUserInput().toLowerCase();
-        System.out.print("Search Maker: ");
-        String m = getUserInput().toLowerCase();
-
-        for (Drone d : drones) {
-            if (d.getType().toLowerCase().contains(t) && d.getManufacturer().toLowerCase().contains(m)) {
-                System.out.println(d);
-            }
-        }
-    }
-
-    /**
-     * Counts how many drones in the hangar were made by a specific company.
-     * @param key The manufacturer name to search for.
-     */
-    public void displayManufacturerCount(String key) {
-        int count = 0;
-        for (Drone d : drones) {
-            if (d.getManufacturer().equalsIgnoreCase(key)) { count++; }
-        }
-        System.out.println("Found: " + count);
+        });
+        return sortedList;
     }
 }
