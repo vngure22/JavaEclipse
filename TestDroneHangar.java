@@ -6,6 +6,10 @@ import java.io.*;
  * It coordinates between the user's input and the Hangar data management.
  */
 public class TestDroneHangar {
+    /**
+     * Main entry point for the Drone Hangar Management System.
+     * @param args Command line arguments (not used).
+     */
     public static void main(String[] args) {
         Hangar hangarManager = new Hangar();
         Scanner inputScanner = new Scanner(System.in);
@@ -54,11 +58,21 @@ public class TestDroneHangar {
                 printDroneList(hangarManager.getDronesSortedByPayload());
             } 
             else if (userChoice.equals("7")) {
+                System.out.print("Enter Manufacturer: ");
+                String mfg = inputScanner.nextLine().trim();
+                System.out.print("Enter Drone Type: ");
+                String type = inputScanner.nextLine().trim();
+                
+                ArrayList<Drone> results = hangarManager.searchByManufacturerandType(mfg, type);
+                System.out.println("\nSearch Results:");
+                printDroneList(results);
+            }
+            else if (userChoice.equals("8")) {
                 System.out.println("Exiting system. Goodbye.");
                 isRunning = false;
             } 
             else {
-                System.out.println("Invalid selection. Please choose 1-7.");
+                System.out.println("Invalid selection. Please choose 1-8.");
             }
         }
         inputScanner.close();
@@ -67,6 +81,8 @@ public class TestDroneHangar {
     /**
      * Reads the CSV file and populates the Hangar.
      * Format expected: Category, Type, Manufacturer, Year, Payload
+     * @param fileName The name of the file to load.
+     * @param hangar The Hangar instance to populate.
      */
     private static void processFileLoading(String fileName, Hangar hangar) {
         try (Scanner fileScanner = new Scanner(new File(fileName))) {
@@ -101,6 +117,9 @@ public class TestDroneHangar {
         }
     }
 
+    /**
+     * Displays the interactive menu options to the console.
+     */
     private static void displayMenu() {
         System.out.println("\nMain Menu:");
         System.out.println("1. Load Drones from CSV");
@@ -109,13 +128,18 @@ public class TestDroneHangar {
         System.out.println("4. Add Drone to Maintenance");
         System.out.println("5. Process Next Maintenance Task");
         System.out.println("6. View Drones Sorted by Payload");
-        System.out.println("7. Exit");
+        System.out.println("7. Search by Manufacturer and Type");
+        System.out.println("8. Exit");
         System.out.print("Select an option: ");
     }
 
+    /**
+     * Iterates through a list of drones and prints their details.
+     * @param droneList The list of drones to display.
+     */
     private static void printDroneList(List<Drone> droneList) {
         if (droneList.isEmpty()) {
-            System.out.println("The inventory is currently empty.");
+            System.out.println("No matching drones found.");
         } else {
             for (Drone drone : droneList) {
                 System.out.println(drone);
@@ -123,8 +147,10 @@ public class TestDroneHangar {
         }
     }
 }
+
 /**
  * Abstract class representing the general Drone properties.
+ * Serves as the base for all specific drone types.
  */
 abstract class Drone {
     private static int idGenerator = 1000;
@@ -134,6 +160,13 @@ abstract class Drone {
     private int year;
     private double payloadCapacity;
 
+    /**
+     * Initializes a new Drone with unique ID generation.
+     * @param type The specific model/type name.
+     * @param manufacturer The company that built the drone.
+     * @param year The year of manufacture.
+     * @param payloadCapacity The maximum weight the drone can carry.
+     */
     public Drone(String type, String manufacturer, int year, double payloadCapacity) {
         this.droneID = "D" + idGenerator++;
         this.type = type;
@@ -142,9 +175,22 @@ abstract class Drone {
         this.payloadCapacity = payloadCapacity;
     }
 
+    /** @return The unique system-generated ID. */
     public String getDroneID() { return droneID; }
-    public double getPayloadCapacity() { return payloadCapacity; }
 
+    /** @return The payload capacity in kilograms. */
+    public double getPayloadCapacity() { return payloadCapacity; }
+    
+    /** @return The specific model/type of the drone. */
+    public String getType() { return type; }
+
+    /** @return The manufacturer name. */
+    public String getManufacturer() { return manufacturer; }
+
+    /**
+     * Returns a formatted string representing the drone.
+     * @return Formatted drone details.
+     */
     @Override
     public String toString() {
         return String.format("[%s] %s %s | Year: %d | Payload: %.1fkg", 
@@ -152,7 +198,17 @@ abstract class Drone {
     }
 }
 
+/**
+ * Represents a standard operational drone.
+ */
 class StandardDrone extends Drone {
+    /**
+     * Constructs a StandardDrone.
+     * @param type The model name.
+     * @param manufacturer The manufacturer name.
+     * @param year The year of manufacture.
+     * @param payload The payload capacity.
+     */
     public StandardDrone(String type, String manufacturer, int year, double payload) {
         super(type, manufacturer, year, payload);
     }
@@ -160,7 +216,17 @@ class StandardDrone extends Drone {
     public String toString() { return "Standard " + super.toString(); }
 }
 
+/**
+ * Represents a drone with high priority for maintenance and operations.
+ */
 class PriorityDrone extends Drone {
+    /**
+     * Constructs a PriorityDrone.
+     * @param type The model name.
+     * @param manufacturer The manufacturer name.
+     * @param year The year of manufacture.
+     * @param payload The payload capacity.
+     */
     public PriorityDrone(String type, String manufacturer, int year, double payload) {
         super(type, manufacturer, year, payload);
     }
@@ -177,21 +243,53 @@ class Hangar {
     private HashMap<String, Drone> idLookupMap = new HashMap<>();
     private Queue<Drone> maintenanceQueue = new LinkedList<>();
 
+    /**
+     * Registers a drone into both the inventory list and the ID lookup map.
+     * @param drone The drone object to register.
+     */
     public void registerDrone(Drone drone) {
         droneInventory.add(drone);
         idLookupMap.put(drone.getDroneID().toUpperCase(), drone);
     }
 
+    /**
+     * Retrieves a drone based on its unique ID.
+     * @param id The ID string (case-insensitive).
+     * @return The Drone object if found, otherwise null.
+     */
     public Drone findDroneById(String id) {
         return idLookupMap.get(id.toUpperCase());
     }
 
+    /**
+     * Filters the inventory for drones matching a specific manufacturer and type.
+     * @param mfg The manufacturer name to search for.
+     * @param type The drone type to search for.
+     * @return A list of matching drones.
+     */
+    public ArrayList<Drone> searchByManufacturerandType(String mfg, String type) {
+        ArrayList<Drone> matches = new ArrayList<>();
+        for (Drone drone : droneInventory) {
+            if (drone.getManufacturer().equalsIgnoreCase(mfg) && 
+                drone.getType().equalsIgnoreCase(type)) {
+                matches.add(drone);
+            }
+        }
+        return matches;
+    }
+
+    /**
+     * Returns the full list of drones in the hangar.
+     * @return ArrayList of all registered drones.
+     */
     public ArrayList<Drone> getAllDrones() {
         return droneInventory;
     }
 
     /**
-     * Prevents duplicates by checking if the drone is already in the queue.
+     * Adds a drone to the maintenance queue. Prevents duplicates.
+     * @param id The ID of the drone to queue.
+     * @return true if added successfully, false if not found or already in queue.
      */
     public boolean addToMaintenanceQueue(String id) {
         Drone targetDrone = findDroneById(id);
@@ -201,10 +299,18 @@ class Hangar {
         return false;
     }
 
+    /**
+     * Removes and returns the next drone waiting for maintenance.
+     * @return The next Drone in the queue, or null if empty.
+     */
     public Drone processNextMaintenanceTask() {
         return maintenanceQueue.poll();
     }
 
+    /**
+     * Returns a copy of the inventory sorted by payload capacity (ascending).
+     * @return A sorted ArrayList of drones.
+     */
     public ArrayList<Drone> getDronesSortedByPayload() {
         ArrayList<Drone> sortedList = new ArrayList<>(droneInventory);
         Collections.sort(sortedList, new Comparator<Drone>() {
